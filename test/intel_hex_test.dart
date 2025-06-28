@@ -48,6 +48,8 @@ void main() {
       for (int i = 0; i < 0x140; ++i) {
         expect(hex.segments.first.byte(i), i < 0x10 ? 0 : 0xFF);
       }
+      final newSegment = MemorySegment(address: 0x1000, length: 10);
+      expect(hex.segmentIsNew(newSegment), true);
     });
 
     test('file from data', () {
