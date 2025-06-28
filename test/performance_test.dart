@@ -42,5 +42,22 @@ void main() {
         expect(parsedSegment.byte(i), (0xFF & i));
       }
     });
+
+    test('parse 1mb lower', () {
+      final input = hex.toFileContents().toLowerCase();
+
+      final stopwatch = Stopwatch();
+      stopwatch.start();
+      final hex2 = IntelHexFile.fromString(input);
+      stopwatch.stop();
+      expect(hex2.segments.length, 1);
+      expect(hex2.maxAddress, 0x100000);
+      expect(stopwatch.elapsed < Duration(seconds: 1), true);
+
+      final parsedSegment = hex2.segments.first;
+      for (int i = 0; i < 0x100000; ++i) {
+        expect(parsedSegment.byte(i), (0xFF & i));
+      }
+    });
   });
 }
