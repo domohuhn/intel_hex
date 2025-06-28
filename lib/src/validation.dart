@@ -7,6 +7,6 @@ import 'package:intel_hex/src/exceptions.dart';
 void validateAddressAndLength(int address, int length) {
   if (address < 0 || length < 0 || (address + length) >= 4294967296) {
     throw IHexRangeError(
-        "Adress and length must be positive and less than 2^32! Got address $address + length $length");
+        "Address and length must be positive and less than 2^32! Got address $address + length $length");
   }
 }

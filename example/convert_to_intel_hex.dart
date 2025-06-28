@@ -28,7 +28,7 @@ void main(List<String> arguments) {
     var hex = IntelHexFile.fromData(file);
     var out = File("$path.hex");
     if (out.existsSync()) {
-      print("ERROR: '$path.hex' alread exists!");
+      print("ERROR: '$path.hex' already exists!");
       exit(1);
     }
     out.writeAsStringSync(hex.toFileContents());

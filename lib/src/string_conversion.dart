@@ -281,17 +281,17 @@ class IHexRecord {
   }
 
   int _read2ByteAddress(
-      IHexRecordType type, String errormsg, int start, int size) {
+      IHexRecordType type, String errorMsg, int start, int size) {
     if (recordType != type || data.length != size) {
-      throw IHexValueError(errormsg);
+      throw IHexValueError(errorMsg);
     }
     int address = (data[start] << 8) | data[start + 1];
     return address;
   }
 
-  int _read4ByteAddress(IHexRecordType type, String errormsg) {
+  int _read4ByteAddress(IHexRecordType type, String errorMsg) {
     if (recordType != type || data.length != 9) {
-      throw IHexValueError(errormsg);
+      throw IHexValueError(errorMsg);
     }
     int address = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
     return address;
