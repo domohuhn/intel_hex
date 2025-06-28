@@ -197,7 +197,7 @@ void main() {
       expect(hex.segments.first.byte(start), 0x19);
       expect(hex.segments.first.byte(start + 0x01), 0x4E);
       expect(hex.segments.first.byte(start + 0x1F), 0x21);
-      expect(hex.toFileContents(), i8HexString);
+      expect(hex.toFileContents(format: IntelHexFormat.i8HEX), i8HexString);
     });
 
     test('Parse I16HEX', () {
