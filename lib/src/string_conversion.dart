@@ -182,7 +182,7 @@ int _createU8FromUnicodeCodePoints(int highNibble, int lowNibble) {
 /// Represents a record read from a file.
 class IHexRecord {
   IHexRecord(this.line, {int startCodePoint = 0x3A}) {
-    List<int> parsed = [];
+    //List<int> parsed = [];
     final runes = line.runes.toList();
     final start = runes.indexOf(startCodePoint);
     if (start == -1) {
@@ -190,8 +190,13 @@ class IHexRecord {
           "Line contains no RECORD MARK '${String.fromCharCode(startCodePoint)}' - failed to find start of record!");
     }
 
+    int expectedBytes = (runes.length - start - 1) >> 1;
+    List<int> parsed =
+        List<int>.generate(expectedBytes, (i) => 0, growable: true);
+    int idx = 0;
     for (var i = start + 1; i + 1 < runes.length; i = i + 2) {
-      parsed.add(_createU8FromUnicodeCodePoints(runes[i], runes[i + 1]));
+      parsed[idx] = (_createU8FromUnicodeCodePoints(runes[i], runes[i + 1]));
+      idx += 1;
     }
     if (parsed.length < 5) {
       throw IHexValueError(
