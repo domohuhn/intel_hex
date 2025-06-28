@@ -31,16 +31,16 @@ The following record types can be parsed:
 | Data | 00 | A data field with the contents of the file. |
 | End Of File  | 01 | The parser stops once an End Of File record is found. |
 | Extended Segment Address | 02 | A data field with an extended address that is added to the address all following data records. Allows addressing up to 1 MB. |
-| Start Segment Address  | 03 | A data field that holds the initial intruction pointer for 80x86 CPUs. |
+| Start Segment Address  | 03 | A data field that holds the initial instruction pointer for 80x86 CPUs. |
 | Extended Linear Address | 04 | A data field that contains the upper 16 bits of the addresses for all subsequent data fields. Allows using up to 4 GB. |
 | Start Linear Address  | 05 | Starting execution address for CPUs that support it. |
 
 ## Getting started
 
-To use the package, simply add it to your pupspec.yaml:
+To use the package, simply add it to your pubspec.yaml:
 ```yaml
 dependencies:
-  intel_hex: ^1.1.0
+  intel_hex: ^1.3.0
 ```
 
 And you are good to go!
