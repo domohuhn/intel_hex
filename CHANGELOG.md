@@ -1,10 +1,14 @@
+## 1.3.0
+
+- Improved performance when parsing files
+
 ## 1.2.1
 
 - Added an example on how to convert an Intel Hex file to binary
 
 ## 1.2.0
 
-- The Memory Segment class and the segments container were seperated from the intel hex file code.
+- The Memory Segment class and the segments container were separated from the intel hex file code.
   The memory segments can be reused for other tasks.
 - The checksum methods are now exported.
 

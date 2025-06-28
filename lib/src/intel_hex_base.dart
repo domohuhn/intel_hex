@@ -28,7 +28,7 @@ class StartSegmentAddress {
   /// Initial value of the instruction pointer. 16 bits.
   int instructionPointer = 0;
 
-  /// Start address of the code segement. 16 bits.
+  /// Start address of the code segment. 16 bits.
   int codeSegment = 0;
 }
 
@@ -54,15 +54,13 @@ class IntelHexFile extends MemorySegmentContainer {
 
   /// Creates a file with a single segment if [address] is >= 0 and [length] is >= 0.
   /// Otherwise the file is empty.
-  IntelHexFile({int? address, int? length})
-      : super(address: address, length: length);
+  IntelHexFile({super.address, super.length});
 
   /// Creates a file with a single segment containing all bytes from [data].
   /// The start [address] is 0 unless another value is provided.
   ///
   /// The contents of [data] will be truncated to (0, 255).
-  IntelHexFile.fromData(Iterable<int> data, {int address = 0})
-      : super.fromData(data, address: address);
+  IntelHexFile.fromData(super.data, {super.address}) : super.fromData();
 
   /// Parses the Intel Hex records in the [data] string and adds it to the
   /// segments in this object. All lines without ":" are ignored. In lines with a colon all preceding
@@ -82,8 +80,13 @@ class IntelHexFile extends MemorySegmentContainer {
       {String? startToken, bool allowDuplicateAddresses = false})
       : super() {
     if (startToken != null) {
+      if (startToken.length != 1) {
+        throw IHexValueError(
+            "The startToken string can only be 1 character long, got ${startToken.length} - string: '$startToken'");
+      }
       startCode = startToken;
     }
+    int startCodePoint = startCode.runes.first;
     final re = RegExp(r'[\r\n]+');
     final lines = data.split(re);
     int lineNo = 0;
@@ -97,7 +100,7 @@ class IntelHexFile extends MemorySegmentContainer {
       }
       bool done = false;
       try {
-        var record = IHexRecord(line, startCode: startCode);
+        var record = IHexRecord(line, startCodePoint: startCodePoint);
         switch (record.recordType) {
           case IHexRecordType.data:
             _addDataRecord(record, extendedLinearAddress,
@@ -166,22 +169,23 @@ class IntelHexFile extends MemorySegmentContainer {
     if (!allowDuplicateAddresses && !validateSegmentsAreUnique()) {
       throw IHexRangeError("There are overlapping Segments in the file!");
     }
-    String rv = "";
+    var rv = StringBuffer();
     if (startLinearAddress != null) {
-      rv += createStartLinearAddressRecord(startLinearAddress!,
-          startCode: startCode);
+      rv.write(createStartLinearAddressRecord(startLinearAddress!,
+          startCode: startCode));
     }
     if (startSegmentAddress != null) {
-      rv += createStartSegmentAddressRecord(startSegmentAddress!.codeSegment,
+      rv.write(createStartSegmentAddressRecord(startSegmentAddress!.codeSegment,
           startSegmentAddress!.instructionPointer,
-          startCode: startCode);
+          startCode: startCode));
     }
 
     for (final seg in segments) {
-      rv += _segmentToFileContents(seg, format: format, startCode: startCode);
+      rv.write(
+          _segmentToFileContents(seg, format: format, startCode: startCode));
     }
-    rv += createEndOfFileRecord(startCode: startCode);
-    return rv;
+    rv.write(createEndOfFileRecord(startCode: startCode));
+    return rv.toString();
   }
 
   void _addDataRecord(IHexRecord record, int extendedLinearAddress,
@@ -256,13 +260,13 @@ String segmentToI8FileContents(
     throw IHexRangeError(
         "Address range [${seg.address},${seg.endAddress}] can not be represented as I8HEX (max. Range: [0,65535])");
   }
-  var rv = "";
+  var rv = StringBuffer();
   for (int i = 0; i < seg.length; i = i + lineLength) {
-    rv += createDataRecord(
+    rv.write(createDataRecord(
         seg.address + i, seg.slice(i, min(i + lineLength, seg.length)),
-        startCode: startCode);
+        startCode: startCode));
   }
-  return rv;
+  return rv.toString();
 }
 
 /// Converts the segment [seg] to an Intel Hex file record block with a max size of 1 MB.
@@ -277,21 +281,21 @@ String segmentToI16FileContents(
     throw IHexRangeError(
         "Address range [${seg.address},${seg.endAddress}] can not be represented as I16HEX (max. Range: [0,1048560])");
   }
-  var rv = "";
+  var rv = StringBuffer();
   var lastBlockAddress = 0;
   for (int i = 0; i < seg.length; i = i + lineLength) {
     final dataStartAddress = seg.address + i;
     final blockStartAddress = dataStartAddress & 0xF0000;
     if (blockStartAddress != lastBlockAddress) {
-      rv += createExtendedSegmentAddressRecord(blockStartAddress,
-          startCode: startCode);
+      rv.write(createExtendedSegmentAddressRecord(blockStartAddress,
+          startCode: startCode));
     }
     lastBlockAddress = blockStartAddress;
-    rv += createDataRecord(dataStartAddress & 0xFFFF,
+    rv.write(createDataRecord(dataStartAddress & 0xFFFF,
         seg.slice(i, min(i + lineLength, seg.length)),
-        startCode: startCode);
+        startCode: startCode));
   }
-  return rv;
+  return rv.toString();
 }
 
 /// Converts the segment [seg] to an Intel Hex file record block.
@@ -302,21 +306,21 @@ String segmentToI32FileContents(
     MemorySegment seg, String startCode, int lineLength) {
   _validateLineLength(lineLength);
   validateAddressAndLength(seg.address, seg.length);
-  var rv = "";
+  var rv = StringBuffer();
   var lastBlockAddress = 0;
   for (int i = 0; i < seg.length; i = i + lineLength) {
     final dataStartAddress = seg.address + i;
     final blockStartAddress = dataStartAddress & 0xFFFF0000;
     if (blockStartAddress != lastBlockAddress) {
-      rv += createExtendedLinearAddressRecord(blockStartAddress,
-          startCode: startCode);
+      rv.write(createExtendedLinearAddressRecord(blockStartAddress,
+          startCode: startCode));
     }
     lastBlockAddress = blockStartAddress;
-    rv += createDataRecord(dataStartAddress & 0xFFFF,
+    rv.write(createDataRecord(dataStartAddress & 0xFFFF,
         seg.slice(i, min(i + lineLength, seg.length)),
-        startCode: startCode);
+        startCode: startCode));
   }
-  return rv;
+  return rv.toString();
 }
 
 /// Verifies that the line length is correct. Throws an exception otherwise.

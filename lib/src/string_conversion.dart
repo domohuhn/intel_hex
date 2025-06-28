@@ -124,9 +124,9 @@ String createStartLinearAddressRecord(int address, {String startCode = ":"}) {
 
 /// Converts [data] to a String with hex values.
 String _convertToHexString(Uint8List data, String startCode) {
-  var rv = "";
+  StringBuffer rv = StringBuffer();
   for (final value in data) {
-    rv += value.toRadixString(16).padLeft(2, '0').toUpperCase();
+    rv.write(value.toRadixString(16).padLeft(2, '0').toUpperCase());
   }
   return "$startCode$rv\n";
 }
@@ -160,18 +160,38 @@ enum IHexRecordType {
   startLinearAddress
 }
 
+int _convertHexCodePointToInt(int codePoint) {
+  if (0x30 <= codePoint && codePoint <= 0x39) {
+    return codePoint - 0x30;
+  }
+  if (0x41 <= codePoint || codePoint <= 0x46) {
+    return 10 + codePoint - 0x41;
+  }
+  if (0x61 <= codePoint || codePoint <= 0x66) {
+    return 10 + codePoint - 0x61;
+  }
+  throw IHexValueError("Failed to convert code point $codePoint to a number.");
+}
+
+int _createU8FromUnicodeCodePoints(int highNibble, int lowNibble) {
+  int hi = _convertHexCodePointToInt(highNibble);
+  int lo = _convertHexCodePointToInt(lowNibble);
+  return (hi << 4) | lo;
+}
+
 /// Represents a record read from a file.
 class IHexRecord {
-  IHexRecord(this.line, {String startCode = ":"}) {
-    if (!line.contains(startCode)) {
-      throw IHexValueError(
-          "Line contains no '$startCode' - a start code is required!");
-    }
-    line = line.trim();
-    final start = line.indexOf(startCode) + 1;
+  IHexRecord(this.line, {int startCodePoint = 0x3A}) {
     List<int> parsed = [];
-    for (var i = start; i < line.length; i = i + 2) {
-      parsed.add(int.parse(line.substring(i, i + 2), radix: 16));
+    final runes = line.runes.toList();
+    final start = runes.indexOf(startCodePoint);
+    if (start == -1) {
+      throw IHexValueError(
+          "Line contains no RECORD MARK '${String.fromCharCode(startCodePoint)}' - failed to find start of record!");
+    }
+
+    for (var i = start + 1; i + 1 < runes.length; i = i + 2) {
+      parsed.add(_createU8FromUnicodeCodePoints(runes[i], runes[i + 1]));
     }
     if (parsed.length < 5) {
       throw IHexValueError(
