@@ -155,11 +155,11 @@ void main() {
       var line3 = ":0400120000000000EA\n";
 
       expect(() => IntelHexFile.fromString(line1 + line1),
-          throwsA(TypeMatcher<IHexValueError>()));
+          throwsA(TypeMatcher<IHexRangeError>()));
       expect(() => IntelHexFile.fromString(line1 + line2),
-          throwsA(TypeMatcher<IHexValueError>()));
+          throwsA(TypeMatcher<IHexRangeError>()));
       expect(() => IntelHexFile.fromString(line1 + line3),
-          throwsA(TypeMatcher<IHexValueError>()));
+          throwsA(TypeMatcher<IHexRangeError>()));
       var hex = IntelHexFile.fromString(line1 + line1 + line2 + line3,
           allowDuplicateAddresses: true);
 

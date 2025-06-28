@@ -85,22 +85,23 @@ class MemorySegment extends Iterable<SegmentByte> {
     }
   }
 
-  /// Resizes the segment to start at the new address [newaddress] with the given length [newlength].
+  /// Resizes the segment to start at the new address [newAddress] with the given length [newLength].
   /// The contents of the old segment are preserved at the same addresses, if they are still in range of the
   /// new segment.
-  void resize(int newaddress, int newlength) {
-    validateAddressAndLength(newaddress, newlength);
-    var next = Uint8List(newlength);
-    var writeOffset =
-        newaddress < _startAddress ? _startAddress - newaddress : 0;
-    var readOffset =
-        newaddress > _startAddress ? newaddress - _startAddress : 0;
-    var maxWrite = length > writeOffset ? newlength - writeOffset : 0;
-    var copylen = length > readOffset ? min(length - readOffset, maxWrite) : 0;
-    for (int i = 0; i < copylen; ++i) {
+  void resize(int newAddress, int newLength) {
+    validateAddressAndLength(newAddress, newLength);
+    final next = Uint8List(newLength);
+    final writeOffset =
+        newAddress < _startAddress ? _startAddress - newAddress : 0;
+    final readOffset =
+        newAddress > _startAddress ? newAddress - _startAddress : 0;
+    final maxWrite = length > writeOffset ? newLength - writeOffset : 0;
+    final copyLen =
+        length > readOffset ? min(length - readOffset, maxWrite) : 0;
+    for (int i = 0; i < copyLen; ++i) {
       next[i + writeOffset] = _data[i + readOffset];
     }
-    _startAddress = newaddress;
+    _startAddress = newAddress;
     _data = next;
   }
 
@@ -127,6 +128,19 @@ class MemorySegment extends Iterable<SegmentByte> {
     }
     var offset = position - _startAddress;
     _data[offset] = byte;
+  }
+
+  /// Writes a list of bytes to a range present in the segment.
+  void writeBytes(int position, Iterable<int> bytes) {
+    if (!isInRange(position, bytes.length)) {
+      throw IHexRangeError(
+          "Address [$position, ${position + bytes.length}] is out of range [$_startAddress, ${_startAddress + length}]");
+    }
+    var offset = position - _startAddress;
+    for (final byte in bytes) {
+      _data[offset] = byte;
+      offset += 1;
+    }
   }
 
   /// Appends a [value] at the end of the buffer. length increases by 4 bytes.
@@ -215,10 +229,11 @@ class MemorySegment extends Iterable<SegmentByte> {
     }
     final nextAddress = min(address, other.address);
     final combinedLen = max(endAddress, other.endAddress) - nextAddress;
-    resize(nextAddress, combinedLen);
-    for (final v in other) {
-      writeByte(v.address, v.value);
+    final nextEnd = nextAddress + combinedLen;
+    if (_startAddress > nextAddress || nextEnd > endAddress) {
+      resize(nextAddress, combinedLen);
     }
+    writeBytes(other.address, other.slice());
   }
 }
 

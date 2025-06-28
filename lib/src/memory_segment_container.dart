@@ -2,8 +2,93 @@
 //
 // SPDX-License-Identifier: BSD-3-Clause
 
+import 'package:intel_hex/src/exceptions.dart';
 import 'package:intel_hex/src/memory_segment.dart';
 import 'dart:math';
+
+/// This class provides a builder for a memory segment container. Use this class
+/// if you intend to constantly add new segments. This builder is lazy, and it will
+/// only do the work to merge segments once build() is called, which is a lot
+/// faster.
+///
+/// The contents of the memory are stored as instances of [MemorySegment].
+///
+/// The segments are only merged once build() is called.
+class MemorySegmentContainerBuilder {
+  /// list with all segments.
+  final List<MemorySegment> _segments;
+
+  /// Creates an empty builder.
+  MemorySegmentContainerBuilder() : _segments = [];
+
+  /// Adds a new segment.
+  void add(MemorySegment seg) {
+    _segments.add(seg);
+  }
+
+  /// Builds a single MemorySegmentContainer from all segments that
+  /// were added with add().
+  ///
+  /// If [allowDuplicateAddresses] is set to false, then an exception will be thrown
+  /// if any of the segments are overlapping.
+  MemorySegmentContainer build({bool allowDuplicateAddresses = false}) {
+    _sortSegmentList();
+    final segmentsToCreate = _getSegmentInfo(allowDuplicateAddresses);
+    final rv = MemorySegmentContainer();
+    for (final toCreate in segmentsToCreate) {
+      rv.addSegment(
+          MemorySegment(address: toCreate.addr, length: toCreate.len));
+    }
+    for (final data in _segments) {
+      rv.addSegment(data);
+    }
+    return rv;
+  }
+
+  /// Sorts the given segments
+  void _sortSegmentList() {
+    _segments.sort((a, b) => a.address.compareTo(b.address));
+  }
+
+  /// Count segments and provide size and start addresses of segments.
+  ///
+  /// If [allowDuplicateAddresses] is set to false, then an exception will be thrown
+  /// if any of the segments are overlapping.
+  List<({int addr, int len})> _getSegmentInfo(bool allowDuplicateAddresses) {
+    var rv = <({int addr, int len})>[];
+    for (final seg in _segments) {
+      final currentAddr = seg.address;
+      final currentLen = seg.length;
+      final currentEnd = seg.endAddress;
+      int foundIdx = -1;
+      for (int i = 0; i < rv.length; ++i) {
+        final other = rv[i];
+        final otherEnd = other.addr + other.len;
+        if (currentAddr <= otherEnd && other.addr <= currentEnd) {
+          foundIdx = i;
+          bool canBeAppended = otherEnd == currentAddr;
+          bool canBePrepended = currentEnd == other.addr;
+          bool isOverlapping = !canBeAppended && !canBePrepended;
+          if (!allowDuplicateAddresses && isOverlapping) {
+            throw IHexRangeError(
+                "The address range [${seg.address}, ${seg.endAddress}[ of a record is not unique!");
+          }
+          break;
+        }
+      }
+      if (foundIdx < 0) {
+        rv.add((addr: currentAddr, len: currentLen));
+      } else {
+        final other = rv[foundIdx];
+        int nextAddr = min(other.addr, currentAddr);
+        final nextEnd = max(other.addr + other.len, currentEnd);
+        int nextLen = nextEnd - nextAddr;
+        rv[foundIdx] = (addr: nextAddr, len: nextLen);
+      }
+    }
+    return rv;
+  }
+}
 
 /// This class represents multiple memory segments.
 ///

@@ -1,6 +1,6 @@
 ## 1.3.0
 
-- Improved performance when parsing files
+- Improved performance when parsing files or when converting segments to a string by about 400x.
 
 ## 1.2.1
 

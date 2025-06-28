@@ -93,6 +93,7 @@ class IntelHexFile extends MemorySegmentContainer {
     int extendedSegmentAddress = 0;
     int extendedLinearAddress = 0;
 
+    final segmentBuilder = MemorySegmentContainerBuilder();
     for (final line in lines) {
       lineNo++;
       if (!line.contains(startCode)) {
@@ -103,8 +104,12 @@ class IntelHexFile extends MemorySegmentContainer {
         var record = IHexRecord(line, startCodePoint: startCodePoint);
         switch (record.recordType) {
           case IHexRecordType.data:
-            _addDataRecord(record, extendedLinearAddress,
-                extendedSegmentAddress, allowDuplicateAddresses);
+            _addDataRecordToSegmentList(
+                segmentBuilder,
+                record,
+                extendedLinearAddress,
+                extendedSegmentAddress,
+                allowDuplicateAddresses);
             break;
           case IHexRecordType.endOfFile:
             done = true;
@@ -136,6 +141,11 @@ class IntelHexFile extends MemorySegmentContainer {
       if (done) {
         break;
       }
+    }
+    final toAdd =
+        segmentBuilder.build(allowDuplicateAddresses: allowDuplicateAddresses);
+    for (final newSegment in toAdd.segments) {
+      addSegment(newSegment);
     }
   }
 
@@ -188,16 +198,16 @@ class IntelHexFile extends MemorySegmentContainer {
     return rv.toString();
   }
 
-  void _addDataRecord(IHexRecord record, int extendedLinearAddress,
-      int extendedSegmentAddress, bool allowDuplicateAddresses) {
+  void _addDataRecordToSegmentList(
+      MemorySegmentContainerBuilder out,
+      IHexRecord record,
+      int extendedLinearAddress,
+      int extendedSegmentAddress,
+      bool allowDuplicateAddresses) {
     final address =
         record.recordAddress + extendedLinearAddress + extendedSegmentAddress;
     final seg = MemorySegment.fromBytes(address: address, data: record.payload);
-    if (!allowDuplicateAddresses && !segmentIsNew(seg)) {
-      throw IHexRangeError(
-          "The address range [${seg.address}, ${seg.endAddress}[ of a record is not unique!");
-    }
-    addSegment(seg);
+    out.add(seg);
   }
 
   /// Returns the format that can be used to represent the file.
