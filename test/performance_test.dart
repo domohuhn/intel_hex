@@ -35,7 +35,6 @@ void main() {
       stopwatch.stop();
       expect(hex2.segments.length, 1);
       expect(hex2.maxAddress, 0x100000);
-      print(stopwatch.elapsed);
       expect(stopwatch.elapsed < Duration(seconds: 1), true);
     });
   });
