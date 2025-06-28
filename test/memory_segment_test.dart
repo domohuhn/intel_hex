@@ -38,6 +38,8 @@ void main() {
       expect(() => segment.byte(0xFF), throwsA(TypeMatcher<IHexRangeError>()));
       expect(() => segment.writeByte(0xFF, 42),
           throwsA(TypeMatcher<IHexRangeError>()));
+      expect(() => segment.writeBytes(0xFF, Uint8List(42)),
+          throwsA(TypeMatcher<IHexRangeError>()));
     });
 
     test('Append byte to segment', () {
@@ -51,6 +53,8 @@ void main() {
       expect(segment.length, 0x02);
       expect(segment.byte(0x42), 25);
       expect(segment.byte(0x43), 26);
+      segment.writeByte(0x42, 255);
+      expect(segment.byte(0x42), 255);
     });
 
     test('Append list of bytes to segment', () {

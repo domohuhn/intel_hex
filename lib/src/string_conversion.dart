@@ -164,10 +164,10 @@ int _convertHexCodePointToInt(int codePoint) {
   if (0x30 <= codePoint && codePoint <= 0x39) {
     return codePoint - 0x30;
   }
-  if (0x41 <= codePoint || codePoint <= 0x46) {
+  if (0x41 <= codePoint && codePoint <= 0x46) {
     return 10 + codePoint - 0x41;
   }
-  if (0x61 <= codePoint || codePoint <= 0x66) {
+  if (0x61 <= codePoint && codePoint <= 0x66) {
     return 10 + codePoint - 0x61;
   }
   throw IHexValueError("Failed to convert code point $codePoint to a number.");

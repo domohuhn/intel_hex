@@ -149,6 +149,11 @@ void main() {
       expect(hex.maxAddress, 0);
     });
 
+    test('wrong start token length', () {
+      expect(() => IntelHexFile.fromString(":00000001FF\n", startToken: "ab"),
+          throwsA(TypeMatcher<IHexValueError>()));
+    });
+
     test('parse duplicate addresses', () {
       var line1 = ":0400100000000000EC\n";
       var line2 = ":04000E0000000000EE\n";
@@ -169,6 +174,19 @@ void main() {
 
     test('Parse I8HEX', () {
       final hex = IntelHexFile.fromString(i8HexString);
+      final start = 0x0120;
+      expect(hex.segments.length, 1);
+      expect(hex.maxAddress, start + 0x20);
+      expect(hex.format, IntelHexFormat.i8HEX);
+      expect(hex.segments.first.address, start);
+      expect(hex.segments.first.byte(start), 0x19);
+      expect(hex.segments.first.byte(start + 0x01), 0x4E);
+      expect(hex.segments.first.byte(start + 0x1F), 0x21);
+      expect(hex.toFileContents(), i8HexString);
+    });
+
+    test('Parse I8HEX2', () {
+      final hex = IntelHexFile.fromString(i8HexStringLower);
       final start = 0x0120;
       expect(hex.segments.length, 1);
       expect(hex.maxAddress, start + 0x20);
@@ -315,6 +333,8 @@ final i8HexString = """:10012000194E79234623965778239EDA3F01B2CAA7
 :100130003F0156702B5E712B722B732146013421C7
 :00000001FF
 """;
+
+final i8HexStringLower = i8HexString.toLowerCase();
 
 final i16HexString = ":020000021000EC\n$i8HexString";
 
