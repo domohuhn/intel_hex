@@ -8,7 +8,7 @@ import 'dart:typed_data';
 
 /// This file shows how to create a program that reads a file
 /// from the file system and converts it to an Intel HEX file.
-/// The output file will be called <path>.hex.
+/// The output file will be called &lt;path&gt;.hex.
 
 void main(List<String> arguments) {
   if (arguments.isEmpty) {
