@@ -124,11 +124,12 @@ String createStartLinearAddressRecord(int address, {String startCode = ":"}) {
 
 /// Converts [data] to a String with hex values.
 String _convertToHexString(Uint8List data, String startCode) {
-  StringBuffer rv = StringBuffer();
+  StringBuffer rv = StringBuffer(startCode);
   for (final value in data) {
     rv.write(value.toRadixString(16).padLeft(2, '0').toUpperCase());
   }
-  return "$startCode$rv\n";
+  rv.write("\n");
+  return rv.toString();
 }
 
 /// Creates the end of file record.
@@ -181,9 +182,8 @@ int _createU8FromUnicodeCodePoints(int highNibble, int lowNibble) {
 
 /// Represents a record read from a file.
 class IHexRecord {
-  IHexRecord(this.line, {int startCodePoint = 0x3A}) {
-    //List<int> parsed = [];
-    final runes = line.runes.toList();
+  IHexRecord(String line, {int startCodePoint = 0x3A}) {
+    final runes = line.codeUnits;
     final start = runes.indexOf(startCodePoint);
     if (start == -1) {
       throw IHexValueError(
@@ -191,51 +191,54 @@ class IHexRecord {
     }
 
     int expectedBytes = (runes.length - start - 1) >> 1;
-    List<int> parsed =
-        List<int>.generate(expectedBytes, (i) => 0, growable: true);
+
+    if (expectedBytes < 5) {
+      throw IHexValueError(
+          "Line is too short! The shortest possible record is 5 bytes - got $expectedBytes");
+    }
+
+    data = Uint8List(expectedBytes);
     int idx = 0;
     for (var i = start + 1; i + 1 < runes.length; i = i + 2) {
-      parsed[idx] = (_createU8FromUnicodeCodePoints(runes[i], runes[i + 1]));
+      data[idx] = (_createU8FromUnicodeCodePoints(runes[i], runes[i + 1]));
       idx += 1;
     }
-    if (parsed.length < 5) {
-      throw IHexValueError(
-          "Line is too short! The shortest possible record is 5 bytes - got ${parsed.length}");
-    }
-    data = Uint8List.fromList(parsed);
-    if (!validateChecksum(data)) {
-      throw IHexValueError("Checksum is not valid!");
-    }
-    if (data[0] != data.length - 5) {
-      throw IHexValueError(
-          "Length byte is not valid! Expected: ${data.length - 5} Got: ${data[0]}");
-    }
-    switch (data[3]) {
-      case 0:
-        recordType = IHexRecordType.data;
-        break;
-      case 1:
-        recordType = IHexRecordType.endOfFile;
-        break;
-      case 2:
-        recordType = IHexRecordType.extendedSegmentAddress;
-        break;
-      case 3:
-        recordType = IHexRecordType.startSegmentAddress;
-        break;
-      case 4:
-        recordType = IHexRecordType.extendedLinearAddress;
-        break;
-      case 5:
-        recordType = IHexRecordType.startLinearAddress;
-        break;
-      default:
-        throw IHexValueError(
-            "Unknown record type! Expected: [0-5] Got: ${data[3]}");
-    }
+    _finalize();
   }
 
-  String line;
+  IHexRecord.fromCodeUnits(List<int> codeUnits, int startOffset,
+      {int startCodePoint = 0x3A}) {
+    final runes = codeUnits;
+    if (codeUnits.length < startOffset + 11) {
+      throw IHexValueError(
+          "Line is too short! The shortest possible record is 11 bytes - got ${codeUnits.length - startOffset - 1} characters");
+    }
+
+    if (runes[startOffset] != startCodePoint) {
+      throw IHexValueError(
+          "Line does not start with RECORD MARK '${String.fromCharCode(startCodePoint)}' - found '${String.fromCharCode(runes[startOffset])}' - failed to find start of record!");
+    }
+
+    final expectedByteCount = _createU8FromUnicodeCodePoints(
+        runes[startOffset + 1], runes[startOffset + 2]);
+    final expectedRecordEnd = startOffset + 2 * expectedByteCount + 11;
+
+    if (codeUnits.length < expectedRecordEnd) {
+      throw IHexValueError(
+          "Line is too short! Expected $expectedByteCount characters - got ${codeUnits.length - startOffset - 1} characters");
+    }
+
+    data = Uint8List(expectedByteCount + 5);
+    int idx = 0;
+    for (var i = startOffset + 1; i + 1 < expectedRecordEnd; i = i + 2) {
+      data[idx] = (_createU8FromUnicodeCodePoints(runes[i], runes[i + 1]));
+      idx += 1;
+    }
+    _finalize();
+  }
+
+  String line({int startCodePoint = 0x3A}) =>
+      _convertToHexString(data, String.fromCharCode(startCodePoint));
   Uint8List data = Uint8List(0);
 
   IHexRecordType recordType = IHexRecordType.data;
@@ -245,6 +248,8 @@ class IHexRecord {
 
   /// Gets the record address
   int get recordAddress => _read2ByteAddress(recordType, "", 1, data.length);
+
+  int get stringLength => 2 * data.length + 1;
 
   /// Gets the extended segment address
   int get extendedSegmentAddress =>
@@ -300,5 +305,38 @@ class IHexRecord {
     }
     int address = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
     return address;
+  }
+
+  void _finalize() {
+    if (!validateChecksum(data)) {
+      throw IHexValueError("Checksum is not valid!");
+    }
+    if (data[0] != data.length - 5) {
+      throw IHexValueError(
+          "Length byte is not valid! Expected: ${data.length - 5} Got: ${data[0]}");
+    }
+    switch (data[3]) {
+      case 0:
+        recordType = IHexRecordType.data;
+        break;
+      case 1:
+        recordType = IHexRecordType.endOfFile;
+        break;
+      case 2:
+        recordType = IHexRecordType.extendedSegmentAddress;
+        break;
+      case 3:
+        recordType = IHexRecordType.startSegmentAddress;
+        break;
+      case 4:
+        recordType = IHexRecordType.extendedLinearAddress;
+        break;
+      case 5:
+        recordType = IHexRecordType.startLinearAddress;
+        break;
+      default:
+        throw IHexValueError(
+            "Unknown record type! Expected: [0-5] Got: ${data[3]}");
+    }
   }
 }

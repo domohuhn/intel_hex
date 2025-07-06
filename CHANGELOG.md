@@ -1,3 +1,8 @@
+## 1.4.0
+
+- Added a "fromCodeUnits" constructor to IHexRecord
+- Reading a file from a string will create less temporary objects
+
 ## 1.3.0
 
 - Improved performance when parsing files or when converting segments to a string by about 400x.

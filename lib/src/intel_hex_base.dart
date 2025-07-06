@@ -86,60 +86,62 @@ class IntelHexFile extends MemorySegmentContainer {
       }
       startCode = startToken;
     }
-    int startCodePoint = startCode.runes.first;
-    final re = RegExp(r'[\r\n]+');
-    final lines = data.split(re);
-    int lineNo = 0;
+    int startCodePoint = startCode.codeUnits.first;
     int extendedSegmentAddress = 0;
     int extendedLinearAddress = 0;
+    int lineNo = 1;
 
     final segmentBuilder = MemorySegmentContainerBuilder();
-    for (final line in lines) {
-      lineNo++;
-      if (!line.contains(startCode)) {
-        continue;
-      }
-      bool done = false;
-      try {
-        var record = IHexRecord(line, startCodePoint: startCodePoint);
-        switch (record.recordType) {
-          case IHexRecordType.data:
-            _addDataRecordToSegmentList(
-                segmentBuilder,
-                record,
-                extendedLinearAddress,
-                extendedSegmentAddress,
-                allowDuplicateAddresses);
-            break;
-          case IHexRecordType.endOfFile:
-            done = true;
-            break;
-          case IHexRecordType.extendedSegmentAddress:
-            extendedSegmentAddress = record.extendedSegmentAddress;
-            break;
-          case IHexRecordType.startSegmentAddress:
-            if (startSegmentAddress != null) {
-              throw IHexValueError(
-                  "Start segment address record occurs more than once!");
-            }
-            startSegmentAddress = record.startSegmentAddress;
-            break;
-          case IHexRecordType.extendedLinearAddress:
-            extendedLinearAddress = record.extendedLinearAddress;
-            break;
-          case IHexRecordType.startLinearAddress:
-            if (startLinearAddress != null) {
-              throw IHexValueError(
-                  "Start linear address record occurs more than once!");
-            }
-            startLinearAddress = record.startLinearAddress;
-            break;
+    for (int i = 0; i < data.codeUnits.length; ++i) {
+      int currentCodeUnit = data.codeUnits[i];
+      if (currentCodeUnit == startCodePoint) {
+        // parse line, append to builder
+        bool done = false;
+        try {
+          var record = IHexRecord.fromCodeUnits(data.codeUnits, i,
+              startCodePoint: startCodePoint);
+          switch (record.recordType) {
+            case IHexRecordType.data:
+              _addDataRecordToSegmentList(
+                  segmentBuilder,
+                  record,
+                  extendedLinearAddress,
+                  extendedSegmentAddress,
+                  allowDuplicateAddresses);
+              break;
+            case IHexRecordType.endOfFile:
+              done = true;
+              break;
+            case IHexRecordType.extendedSegmentAddress:
+              extendedSegmentAddress = record.extendedSegmentAddress;
+              break;
+            case IHexRecordType.startSegmentAddress:
+              if (startSegmentAddress != null) {
+                throw IHexValueError(
+                    "Start segment address record occurs more than once!");
+              }
+              startSegmentAddress = record.startSegmentAddress;
+              break;
+            case IHexRecordType.extendedLinearAddress:
+              extendedLinearAddress = record.extendedLinearAddress;
+              break;
+            case IHexRecordType.startLinearAddress:
+              if (startLinearAddress != null) {
+                throw IHexValueError(
+                    "Start linear address record occurs more than once!");
+              }
+              startLinearAddress = record.startLinearAddress;
+              break;
+          }
+          i += record.stringLength;
+        } catch (e) {
+          throw IHexValueError("Parsing error on line $lineNo : $e");
         }
-      } catch (e) {
-        throw IHexValueError("Parsing error on line $lineNo : $e");
-      }
-      if (done) {
-        break;
+        if (done) {
+          break;
+        }
+      } else if (data.codeUnits[i] == 0x0A) {
+        lineNo++;
       }
     }
     final toAdd =

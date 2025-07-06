@@ -9,14 +9,15 @@ void main() {
   group('Performance', () {
     final hex = IntelHexFile(address: 0x0, length: 0x00);
     var data = <int>[];
-    for (int i = 0; i < 0x100000; ++i) {
+    const fileSize = 0x100000;
+    for (int i = 0; i < fileSize; ++i) {
       data.add(0xFF & i);
     }
     hex.addAll(0x00, data);
 
     test('serialize 1mb', () {
       expect(hex.segments.length, 1);
-      expect(hex.maxAddress, 0x100000);
+      expect(hex.maxAddress, fileSize);
 
       final stopwatch = Stopwatch();
       stopwatch.start();
@@ -34,11 +35,11 @@ void main() {
       final hex2 = IntelHexFile.fromString(input);
       stopwatch.stop();
       expect(hex2.segments.length, 1);
-      expect(hex2.maxAddress, 0x100000);
+      expect(hex2.maxAddress, fileSize);
       expect(stopwatch.elapsed < Duration(seconds: 1), true);
 
       final parsedSegment = hex2.segments.first;
-      for (int i = 0; i < 0x100000; ++i) {
+      for (int i = 0; i < fileSize; ++i) {
         expect(parsedSegment.byte(i), (0xFF & i));
       }
     });
@@ -51,11 +52,11 @@ void main() {
       final hex2 = IntelHexFile.fromString(input);
       stopwatch.stop();
       expect(hex2.segments.length, 1);
-      expect(hex2.maxAddress, 0x100000);
+      expect(hex2.maxAddress, fileSize);
       expect(stopwatch.elapsed < Duration(seconds: 1), true);
 
       final parsedSegment = hex2.segments.first;
-      for (int i = 0; i < 0x100000; ++i) {
+      for (int i = 0; i < fileSize; ++i) {
         expect(parsedSegment.byte(i), (0xFF & i));
       }
     });
