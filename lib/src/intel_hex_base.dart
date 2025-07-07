@@ -140,7 +140,8 @@ class IntelHexFile extends MemorySegmentContainer {
         if (done) {
           break;
         }
-      } else if (data.codeUnits[i] == 0x0A) {
+      }
+      if (data.codeUnits[i] == 0x0A) {
         lineNo++;
       }
     }

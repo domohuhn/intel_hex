@@ -61,4 +61,51 @@ void main() {
           throwsA(TypeMatcher<IHexRangeError>()));
     });
   });
+
+  group('Errors when parsing records', () {
+    test('short lines', () {
+      expect(() => IHexRecord(":aa"), throwsA(TypeMatcher<IHexValueError>()));
+      expect(() => IHexRecord("aa"), throwsA(TypeMatcher<IHexValueError>()));
+      expect(() => IHexRecord(":FF00000200FF"),
+          throwsA(TypeMatcher<IHexValueError>()));
+    });
+
+    test('short lists', () {
+      expect(() => IHexRecord.fromCodeUnits([0x3A, 0x00, 0x00], 0),
+          throwsA(TypeMatcher<IHexValueError>()));
+      expect(
+          () => IHexRecord.fromCodeUnits([
+                0x3A,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00,
+                0x00
+              ], 1),
+          throwsA(TypeMatcher<IHexValueError>()));
+    });
+
+    test('Wrong length', () {
+      var rec = IHexRecord(":0100000000FF");
+      rec.data[0] = 2;
+      expect(() => rec.validate(), throwsA(TypeMatcher<IHexValueError>()));
+    });
+  });
+
+  group('round trips', () {
+    test('string', () {
+      const input = ":0100000000FF\n";
+      final rec = IHexRecord(input);
+      expect(rec.line(), input);
+
+      expect(rec.line(startCodePoint: 0x40).startsWith('@'), true);
+      expect(rec.line(startCodePoint: 0x40).endsWith(input.substring(1)), true);
+    });
+  });
 }

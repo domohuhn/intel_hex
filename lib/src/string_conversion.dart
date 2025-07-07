@@ -189,18 +189,25 @@ class IHexRecord {
       throw IHexValueError(
           "Line contains no RECORD MARK '${String.fromCharCode(startCodePoint)}' - failed to find start of record!");
     }
-
-    int expectedBytes = (runes.length - start - 1) >> 1;
-
-    if (expectedBytes < 5) {
+    if (runes.length - start < 11) {
       throw IHexValueError(
-          "Line is too short! The shortest possible record is 5 bytes - got $expectedBytes");
+          "Line is too short! The shortest possible record is 11 characters - got ${runes.length - start}");
     }
 
-    data = Uint8List(expectedBytes);
+    int expectedBytes =
+        _createU8FromUnicodeCodePoints(runes[start + 1], runes[start + 2]);
+    final expectedRecordEnd = start + 2 * expectedBytes + 11;
+
+    if (runes.length < expectedRecordEnd) {
+      throw IHexValueError(
+          "Line is too short! Expected ${2 * expectedBytes + 11} characters - got ${runes.length - start} characters");
+    }
+    data = Uint8List(expectedBytes + 5);
     int idx = 0;
-    for (var i = start + 1; i + 1 < runes.length; i = i + 2) {
-      data[idx] = (_createU8FromUnicodeCodePoints(runes[i], runes[i + 1]));
+    for (var i = 0; i < expectedBytes + 5; ++i) {
+      final readIdx = 2 * i + start + 1;
+      data[idx] =
+          (_createU8FromUnicodeCodePoints(runes[readIdx], runes[readIdx + 1]));
       idx += 1;
     }
     _finalize();
@@ -225,7 +232,7 @@ class IHexRecord {
 
     if (codeUnits.length < expectedRecordEnd) {
       throw IHexValueError(
-          "Line is too short! Expected $expectedByteCount characters - got ${codeUnits.length - startOffset - 1} characters");
+          "Line is too short! Expected ${2 * expectedByteCount + 11} characters - got ${codeUnits.length - startOffset - 1} characters");
     }
 
     data = Uint8List(expectedByteCount + 5);
@@ -307,14 +314,18 @@ class IHexRecord {
     return address;
   }
 
-  void _finalize() {
+  void validate() {
     if (!validateChecksum(data)) {
       throw IHexValueError("Checksum is not valid!");
     }
     if (data[0] != data.length - 5) {
       throw IHexValueError(
-          "Length byte is not valid! Expected: ${data.length - 5} Got: ${data[0]}");
+          "Length byte is not valid! Expected: ${data[0]} Got: ${data.length - 5}");
     }
+  }
+
+  void _finalize() {
+    validate();
     switch (data[3]) {
       case 0:
         recordType = IHexRecordType.data;
