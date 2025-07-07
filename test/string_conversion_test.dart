@@ -94,6 +94,7 @@ void main() {
     test('Wrong length', () {
       var rec = IHexRecord(":0100000000FF");
       rec.data[0] = 2;
+      rec.data[5] = 0xFE;
       expect(() => rec.validate(), throwsA(TypeMatcher<IHexValueError>()));
     });
   });
