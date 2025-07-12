@@ -184,18 +184,17 @@ class IntelHexFile extends MemorySegmentContainer {
     }
     var rv = StringBuffer();
     if (startLinearAddress != null) {
-      rv.write(createStartLinearAddressRecord(startLinearAddress!,
-          startCode: startCode));
+      createStartLinearAddressRecord(rv, startLinearAddress!,
+          startCode: startCode);
     }
     if (startSegmentAddress != null) {
-      rv.write(createStartSegmentAddressRecord(startSegmentAddress!.codeSegment,
+      createStartSegmentAddressRecord(rv, startSegmentAddress!.codeSegment,
           startSegmentAddress!.instructionPointer,
-          startCode: startCode));
+          startCode: startCode);
     }
 
     for (final seg in segments) {
-      rv.write(
-          _segmentToFileContents(seg, format: format, startCode: startCode));
+      _segmentToFileContents(rv, seg, format: format, startCode: startCode);
     }
     rv.write(createEndOfFileRecord(startCode: startCode));
     return rv.toString();
@@ -249,15 +248,15 @@ class IntelHexFile extends MemorySegmentContainer {
   }
 
   /// Converts this segment to an Intel Hex file record block.
-  String _segmentToFileContents(MemorySegment seg,
+  void _segmentToFileContents(StringBuffer str, MemorySegment seg,
       {IntelHexFormat format = IntelHexFormat.i32HEX, String startCode = ":"}) {
     switch (format) {
       case IntelHexFormat.i8HEX:
-        return segmentToI8FileContents(seg, startCode, _lineLength);
+        segmentToI8FileContents(str, seg, startCode, _lineLength);
       case IntelHexFormat.i16HEX:
-        return segmentToI16FileContents(seg, startCode, _lineLength);
+        segmentToI16FileContents(str, seg, startCode, _lineLength);
       case IntelHexFormat.i32HEX:
-        return segmentToI32FileContents(seg, startCode, _lineLength);
+        segmentToI32FileContents(str, seg, startCode, _lineLength);
     }
   }
 }
@@ -266,74 +265,68 @@ class IntelHexFile extends MemorySegmentContainer {
 ///
 /// Uses [startCode] to start a record and writes [lineLength] bytes per line.
 /// [lineLength] must be between 1 and 255.
-String segmentToI8FileContents(
-    MemorySegment seg, String startCode, int lineLength) {
+void segmentToI8FileContents(
+    StringBuffer str, MemorySegment seg, String startCode, int lineLength) {
   _validateLineLength(lineLength);
   if (seg.endAddress > 65535) {
     throw IHexRangeError(
         "Address range [${seg.address},${seg.endAddress}] can not be represented as I8HEX (max. Range: [0,65535])");
   }
-  var rv = StringBuffer();
   for (int i = 0; i < seg.length; i = i + lineLength) {
-    rv.write(createDataRecord(
-        seg.address + i, seg.slice(i, min(i + lineLength, seg.length)),
-        startCode: startCode));
+    createDataRecord(
+        str, seg.address + i, seg.slice(i, min(i + lineLength, seg.length)),
+        startCode: startCode);
   }
-  return rv.toString();
 }
 
 /// Converts the segment [seg] to an Intel Hex file record block with a max size of 1 MB.
 ///
 /// Uses [startCode] to start a record and writes [lineLength] bytes per line.
 /// [lineLength] must be between 1 and 255.
-String segmentToI16FileContents(
-    MemorySegment seg, String startCode, int lineLength) {
+void segmentToI16FileContents(
+    StringBuffer str, MemorySegment seg, String startCode, int lineLength) {
   _validateLineLength(lineLength);
   const i16max = 65535;
   if (seg.endAddress > i16max * 16) {
     throw IHexRangeError(
         "Address range [${seg.address},${seg.endAddress}] can not be represented as I16HEX (max. Range: [0,1048560])");
   }
-  var rv = StringBuffer();
   var lastBlockAddress = 0;
   for (int i = 0; i < seg.length; i = i + lineLength) {
     final dataStartAddress = seg.address + i;
     final blockStartAddress = dataStartAddress & 0xF0000;
     if (blockStartAddress != lastBlockAddress) {
-      rv.write(createExtendedSegmentAddressRecord(blockStartAddress,
-          startCode: startCode));
+      createExtendedSegmentAddressRecord(str, blockStartAddress,
+          startCode: startCode);
     }
     lastBlockAddress = blockStartAddress;
-    rv.write(createDataRecord(dataStartAddress & 0xFFFF,
+    createDataRecord(str, dataStartAddress & 0xFFFF,
         seg.slice(i, min(i + lineLength, seg.length)),
-        startCode: startCode));
+        startCode: startCode);
   }
-  return rv.toString();
 }
 
 /// Converts the segment [seg] to an Intel Hex file record block.
 ///
 /// Uses [startCode] to start a record and writes [lineLength] bytes per line.
 /// [lineLength] must be between 1 and 255.
-String segmentToI32FileContents(
-    MemorySegment seg, String startCode, int lineLength) {
+void segmentToI32FileContents(
+    StringBuffer str, MemorySegment seg, String startCode, int lineLength) {
   _validateLineLength(lineLength);
   validateAddressAndLength(seg.address, seg.length);
-  var rv = StringBuffer();
   var lastBlockAddress = 0;
   for (int i = 0; i < seg.length; i = i + lineLength) {
     final dataStartAddress = seg.address + i;
     final blockStartAddress = dataStartAddress & 0xFFFF0000;
     if (blockStartAddress != lastBlockAddress) {
-      rv.write(createExtendedLinearAddressRecord(blockStartAddress,
-          startCode: startCode));
+      createExtendedLinearAddressRecord(str, blockStartAddress,
+          startCode: startCode);
     }
     lastBlockAddress = blockStartAddress;
-    rv.write(createDataRecord(dataStartAddress & 0xFFFF,
+    createDataRecord(str, dataStartAddress & 0xFFFF,
         seg.slice(i, min(i + lineLength, seg.length)),
-        startCode: startCode));
+        startCode: startCode);
   }
-  return rv.toString();
 }
 
 /// Verifies that the line length is correct. Throws an exception otherwise.

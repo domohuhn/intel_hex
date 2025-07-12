@@ -15,7 +15,8 @@ import 'package:intel_hex/intel_hex.dart';
 /// Example: ":0300300002337A1E"
 ///
 /// A different start token than ":" can be provided via [startCode].
-String createDataRecord(int address, Uint8List data, {String startCode = ":"}) {
+void createDataRecord(StringBuffer str, int address, Uint8List data,
+    {String startCode = ":"}) {
   if (address > 65535) {
     throw IHexRangeError("Address $address does not fit in two bytes!");
   }
@@ -32,7 +33,7 @@ String createDataRecord(int address, Uint8List data, {String startCode = ":"}) {
   for (int i = 0; i < byteCount; ++i) {
     tmp[4 + i] = data[i];
   }
-  return _convertToHexString(appendChecksum(tmp), startCode);
+  _convertToHexString(str, appendChecksum(tmp), startCode);
 }
 
 /// Creates an Extended Segment Address record from the given [address] and [data].
@@ -44,7 +45,7 @@ String createDataRecord(int address, Uint8List data, {String startCode = ":"}) {
 /// Example: ":020000021200EA"
 ///
 /// A different start token than ":" can be provided via [startCode].
-String createExtendedSegmentAddressRecord(int address,
+void createExtendedSegmentAddressRecord(StringBuffer str, int address,
     {String startCode = ":"}) {
   var computed = address >> 4;
   if (computed > 65535) {
@@ -57,7 +58,7 @@ String createExtendedSegmentAddressRecord(int address,
   tmp[3] = 0x02;
   tmp[4] = (computed >> 8) & 0xFF;
   tmp[5] = computed & 0xFF;
-  return _convertToHexString(appendChecksum(tmp), startCode);
+  _convertToHexString(str, appendChecksum(tmp), startCode);
 }
 
 /// Creates an Extended Linear Address record from the given [address].
@@ -67,7 +68,7 @@ String createExtendedSegmentAddressRecord(int address,
 /// Example: ":02000004FFFFFC"
 ///
 /// A different start token than ":" can be provided via [startCode].
-String createExtendedLinearAddressRecord(int address,
+void createExtendedLinearAddressRecord(StringBuffer str, int address,
     {String startCode = ":"}) {
   var computed = (address >> 16);
   var tmp = Uint8List(6);
@@ -77,7 +78,7 @@ String createExtendedLinearAddressRecord(int address,
   tmp[3] = 0x04;
   tmp[4] = (computed >> 8) & 0xFF;
   tmp[5] = computed & 0xFF;
-  return _convertToHexString(appendChecksum(tmp), startCode);
+  _convertToHexString(str, appendChecksum(tmp), startCode);
 }
 
 /// Creates a Start Segment Address record from the given [address].
@@ -88,7 +89,8 @@ String createExtendedLinearAddressRecord(int address,
 /// Example: ":0400000300003800C1"
 ///
 /// A different start token than ":" can be provided via [startCode].
-String createStartSegmentAddressRecord(int codeSegment, int instructionPointer,
+void createStartSegmentAddressRecord(
+    StringBuffer str, int codeSegment, int instructionPointer,
     {String startCode = ":"}) {
   var tmp = Uint8List(8);
   tmp[0] = 0x04;
@@ -99,7 +101,7 @@ String createStartSegmentAddressRecord(int codeSegment, int instructionPointer,
   tmp[5] = codeSegment & 0xFF;
   tmp[6] = (instructionPointer >> 8) & 0xFF;
   tmp[7] = instructionPointer & 0xFF;
-  return _convertToHexString(appendChecksum(tmp), startCode);
+  return _convertToHexString(str, appendChecksum(tmp), startCode);
 }
 
 /// Creates a Start Linear Address record from the given [address].
@@ -109,7 +111,8 @@ String createStartSegmentAddressRecord(int codeSegment, int instructionPointer,
 /// Example: ":04000005000000CD2A"
 ///
 /// A different start token than ":" can be provided via [startCode].
-String createStartLinearAddressRecord(int address, {String startCode = ":"}) {
+void createStartLinearAddressRecord(StringBuffer str, int address,
+    {String startCode = ":"}) {
   var tmp = Uint8List(8);
   tmp[0] = 0x04;
   tmp[1] = 0x00;
@@ -119,17 +122,16 @@ String createStartLinearAddressRecord(int address, {String startCode = ":"}) {
   tmp[5] = (address >> 16) & 0xFF;
   tmp[6] = (address >> 8) & 0xFF;
   tmp[7] = address & 0xFF;
-  return _convertToHexString(appendChecksum(tmp), startCode);
+  return _convertToHexString(str, appendChecksum(tmp), startCode);
 }
 
 /// Converts [data] to a String with hex values.
-String _convertToHexString(Uint8List data, String startCode) {
-  StringBuffer rv = StringBuffer(startCode);
+void _convertToHexString(StringBuffer rv, Uint8List data, String startCode) {
+  rv.write(startCode);
   for (final value in data) {
     rv.write(value.toRadixString(16).padLeft(2, '0').toUpperCase());
   }
   rv.write("\n");
-  return rv.toString();
 }
 
 /// Creates the end of file record.
@@ -244,8 +246,12 @@ class IHexRecord {
     _finalize();
   }
 
-  String line({int startCodePoint = 0x3A}) =>
-      _convertToHexString(data, String.fromCharCode(startCodePoint));
+  String line({int startCodePoint = 0x3A}) {
+    StringBuffer buf = StringBuffer();
+    _convertToHexString(buf, data, String.fromCharCode(startCodePoint));
+    return buf.toString();
+  }
+
   Uint8List data = Uint8List(0);
 
   IHexRecordType recordType = IHexRecordType.data;

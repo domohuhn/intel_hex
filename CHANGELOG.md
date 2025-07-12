@@ -1,7 +1,8 @@
 ## 1.4.0
 
-- Added a "fromCodeUnits" constructor to IHexRecord
-- Reading a file from a string will create less temporary objects
+- Added a "fromCodeUnits" constructor to IHexRecord.
+- Reading a file from a string will create less temporary objects.
+- File data is now serialized directly to a string buffer.
 
 ## 1.3.0
 

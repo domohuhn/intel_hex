@@ -178,30 +178,35 @@ void main() {
         ":10002000000102030405060708090A0B0C0D0E0F58\n:10003000101112131415161718191A1B1C1D1E1F48\n";
 
     test('to I8HEX, 16 bytes', () {
-      var rv = segmentToI8FileContents(segment, ":", 16);
-      expect(rv, rv16Bytes);
+      StringBuffer rv = StringBuffer();
+      segmentToI8FileContents(rv, segment, ":", 16);
+      expect(rv.toString(), rv16Bytes);
     });
 
     test('to I8HEX, 64 bytes', () {
-      var rv = segmentToI8FileContents(segment, ":", 64);
-      expect(rv,
+      StringBuffer rv = StringBuffer();
+      segmentToI8FileContents(rv, segment, ":", 64);
+      expect(rv.toString(),
           ":20002000000102030405060708090A0B0C0D0E0F101112131415161718191A1B1C1D1E1FD0\n");
     });
 
     test('to I8HEX, 8 bytes', () {
-      var rv = segmentToI8FileContents(segment, ":", 8);
-      expect(rv,
+      StringBuffer rv = StringBuffer();
+      segmentToI8FileContents(rv, segment, ":", 8);
+      expect(rv.toString(),
           ":080020000001020304050607BC\n:0800280008090A0B0C0D0E0F74\n:0800300010111213141516172C\n:0800380018191A1B1C1D1E1FE4\n");
     });
 
     test('to I16HEX, 16 bytes', () {
-      var rv = segmentToI16FileContents(segment, ":", 16);
-      expect(rv, rv16Bytes);
+      StringBuffer rv = StringBuffer();
+      segmentToI16FileContents(rv, segment, ":", 16);
+      expect(rv.toString(), rv16Bytes);
     });
 
     test('to I32HEX, 16 bytes', () {
-      var rv = segmentToI32FileContents(segment, ":", 16);
-      expect(rv, rv16Bytes);
+      StringBuffer rv = StringBuffer();
+      segmentToI32FileContents(rv, segment, ":", 16);
+      expect(rv.toString(), rv16Bytes);
     });
   });
 
@@ -212,19 +217,24 @@ void main() {
     }
     final segment = MemorySegment.fromBytes(address: 0x20, data: data);
     test('to I8HEX, 16 bytes per line', () {
-      expect(() => segmentToI8FileContents(segment, ":", 16),
+      StringBuffer rv = StringBuffer();
+      expect(() => segmentToI8FileContents(rv, segment, ":", 16),
           throwsA(TypeMatcher<IHexRangeError>()));
     });
 
     test('to I16HEX, 128 bytes per line', () {
-      var rv = segmentToI16FileContents(segment, ":", 128);
+      StringBuffer buf = StringBuffer();
+      segmentToI16FileContents(buf, segment, ":", 128);
+      final rv = buf.toString();
       int count = '\n'.allMatches(rv).length;
       expect(count, 1025);
       expect(rv.contains(":020000021000EC\n"), true);
     });
 
     test('to I32HEX, 128 bytes per line', () {
-      var rv = segmentToI32FileContents(segment, ":", 128);
+      StringBuffer buf = StringBuffer();
+      segmentToI32FileContents(buf, segment, ":", 128);
+      final rv = buf.toString();
       int count = '\n'.allMatches(rv).length;
       expect(count, 1025);
       expect(rv.contains(":020000040001F9\n"), true);
